@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.tracecompass.ctf.core.CTFStrings;
 import org.eclipse.tracecompass.ctf.core.event.IEventDeclaration;
 import org.eclipse.tracecompass.ctf.core.event.IEventDefinition;
 import org.eclipse.tracecompass.ctf.core.event.scope.IDefinitionScope;
@@ -174,12 +175,12 @@ public final class EventDefinition implements IDefinitionScope, IEventDefinition
     public ICompositeDefinition getContext() {
 
         /* Most common case so far */
-        if (fStreamContext == null) {
+        if (fStreamContext == null && fPacketContext == null) {
             return fEventContext;
         }
 
         /* streamContext is not null, but the context of the event is null */
-        if (fEventContext == null) {
+        if (fEventContext == null && fPacketContext == null) {
             return fStreamContext;
         }
 
@@ -189,28 +190,54 @@ public final class EventDefinition implements IDefinitionScope, IEventDefinition
         StructDeclaration mergedDeclaration = new StructDeclaration(1);
 
         List<Definition> fieldValues = new ArrayList<>();
+        List<@NonNull String> fieldNames = new ArrayList<>();
 
-        /* Add fields from the stream */
-        List<@NonNull String> fieldNames = fStreamContext.getFieldNames();
-        for (String fieldName : fieldNames) {
-            Definition definition = fStreamContext.getDefinition(fieldName);
-            mergedDeclaration.addField(fieldName, definition.getDeclaration());
-            fieldValues.add(definition);
-        }
-
-        /*
-         * Add fields from the event context, overwrite the stream ones if
-         * needed.
-         */
-        for (String fieldName : fEventContext.getFieldNames()) {
-            Definition definition = fEventContext.getDefinition(fieldName);
-            mergedDeclaration.addField(fieldName, definition.getDeclaration());
-            if (fieldNames.contains(fieldName)) {
-                fieldValues.set((fieldNames.indexOf(fieldName)), definition);
-            } else {
+        if (fPacketContext != null) {
+            /* Add fields from the packet context */
+            for (String fieldName : fPacketContext.getFieldNames()) {
+                if (fieldName.equals(CTFStrings.TIMESTAMP_BEGIN) ||
+                    fieldName.equals(CTFStrings.TIMESTAMP_END) ||
+                    fieldName.equals(CTFStrings.PACKET_SIZE) ||
+                    fieldName.equals(CTFStrings.CONTENT_SIZE) ||
+                    fieldName.equals(CTFStrings.EVENTS_DISCARDED)) continue;
+                Definition definition = fPacketContext.getDefinition(fieldName);
+                mergedDeclaration.addField(fieldName, definition.getDeclaration());
                 fieldValues.add(definition);
             }
         }
+
+        if (fStreamContext != null) {
+            /*
+             * Add fields from the stream context, overwrite the packet ones if
+             * needed.
+             */
+            for (String fieldName : fStreamContext.getFieldNames()) {
+                Definition definition = fStreamContext.getDefinition(fieldName);
+                mergedDeclaration.addField(fieldName, definition.getDeclaration());
+                if (fieldNames.contains(fieldName)) {
+                    fieldValues.set((fieldNames.indexOf(fieldName)), definition);
+                } else {
+                    fieldValues.add(definition);
+                }
+            }
+        }
+
+        if (fEventContext != null) {
+            /*
+             * Add fields from the event context, overwrite the stream ones if
+             * needed.
+             */
+            for (String fieldName : fEventContext.getFieldNames()) {
+                Definition definition = fEventContext.getDefinition(fieldName);
+                mergedDeclaration.addField(fieldName, definition.getDeclaration());
+                if (fieldNames.contains(fieldName)) {
+                    fieldValues.set((fieldNames.indexOf(fieldName)), definition);
+                } else {
+                    fieldValues.add(definition);
+                }
+            }
+        }
+
         return new StructDefinition(mergedDeclaration, this, "context", //$NON-NLS-1$
                 fieldValues.toArray(new Definition[fieldValues.size()]));
     }
