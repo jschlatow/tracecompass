@@ -94,6 +94,13 @@ public interface IEventDefinition {
     @NonNull Map<@NonNull String, @NonNull Object> getPacketAttributes();
 
     /**
+     * Get the packet header.
+     *
+     * @return the packet header (containing magic and stream id)
+     */
+    ICompositeDefinition getPacketHeader();
+
+    /**
      * Gets the stream context of a given event
      *
      * @return the stream context

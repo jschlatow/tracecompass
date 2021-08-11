@@ -16,9 +16,10 @@ package org.eclipse.tracecompass.ctf.core.trace;
 import java.util.Map;
 
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.tracecompass.ctf.core.event.types.ICompositeDefinition;
 
 /**
- * CTF Packet descriptor, can come from a packet header or an index file, this
+ * CTF Packet descriptor, can come from a packet context or an index file, this
  * will show certain information about the packet such as the size and
  * timerange.
  *
@@ -91,6 +92,14 @@ public interface ICTFPacketDescriptor {
      * @since 2.0
      */
     @NonNull Map<String, Object> getAttributes();
+
+    /**
+     * Retrieve the packet context definition.
+     *
+     * @return the packet context
+     * @since 7.X
+     */
+    ICompositeDefinition getStreamPacketContextDef();
 
     /**
      * Get the target of the packet (what device generated this packet)
